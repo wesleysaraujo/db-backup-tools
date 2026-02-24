@@ -297,6 +297,11 @@ export class SqliteStore {
     return this.getBackup(id);
   }
 
+  deleteBackup(id: string): boolean {
+    const result = this.db.prepare('DELETE FROM backups WHERE id = ?').run(id);
+    return result.changes > 0;
+  }
+
   // === Schedules ===
   getSchedules(connectionId?: string): ScheduleConfig[] {
     if (connectionId) {

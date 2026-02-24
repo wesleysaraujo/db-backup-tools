@@ -44,7 +44,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
     ];
 
     if (options?.rowLimit) {
-      parts.unshift('# AVISO: rowLimit ignorado — pg_dump nao suporta limite de linhas nativo');
+      parts.unshift('# AVISO: rowLimit ignorado — pg_dump não suporta limite de linhas nativo');
     }
 
     return parts.join(' ');
@@ -54,7 +54,7 @@ export class PostgreSQLDriver implements DatabaseDriver {
     const startTime = Date.now();
 
     if (options?.rowLimit) {
-      console.warn(`[PostgreSQLDriver] rowLimit=${options.rowLimit} ignorado — pg_dump nao suporta limite de linhas nativo. Executando dump completo.`);
+      console.warn(`[PostgreSQLDriver] rowLimit=${options.rowLimit} ignorado — pg_dump não suporta limite de linhas nativo. Executando dump completo.`);
     }
 
     try {

@@ -31,7 +31,7 @@ router.post('/', (req, res) => {
 
   const connection = store.getConnection(data.connectionId);
   if (!connection) {
-    const response: ApiResponse = { success: false, error: 'Conexao nao encontrada' };
+    const response: ApiResponse = { success: false, error: 'conexão não encontrada' };
     res.status(404).json(response);
     return;
   }
@@ -89,7 +89,7 @@ router.put('/:id', (req, res) => {
 
   const updated = store.updateSchedule(id, data as Partial<ScheduleConfig>);
   if (!updated) {
-    const response: ApiResponse = { success: false, error: 'Agendamento nao encontrado' };
+    const response: ApiResponse = { success: false, error: 'Agendamento não encontrado' };
     res.status(404).json(response);
     return;
   }
@@ -110,7 +110,7 @@ router.delete('/:id', (req, res) => {
 
   const deleted = store.deleteSchedule(id);
   if (!deleted) {
-    const response: ApiResponse = { success: false, error: 'Agendamento nao encontrado' };
+    const response: ApiResponse = { success: false, error: 'Agendamento não encontrado' };
     res.status(404).json(response);
     return;
   }

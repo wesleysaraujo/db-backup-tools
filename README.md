@@ -31,6 +31,18 @@ npm run cli -- backup run <connectionId>
 npm run cli -- serve
 ```
 
+## Frontend (Vue)
+
+O frontend Vue usa a API existente e roda separado do servidor.
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Abra `http://localhost:5173` e configure o **API Base URL** (ex: `http://localhost:3777`) e a **API Key**.
+
 ## Features
 
 - Cadastro e gerenciamento de conexões de banco de dados
@@ -92,6 +104,7 @@ npm run cli -- serve
 | POST   | `/api/backups/:connectionId`  | Executar backup agora        |
 | GET    | `/api/backups`                | Listar histórico             |
 | GET    | `/api/backups/:id/download`   | Download do arquivo de backup|
+| DELETE | `/api/backups/:id`            | Remover backup               |
 | POST   | `/api/backups/:id/restore`    | Restaurar backup             |
 
 ### Schedules

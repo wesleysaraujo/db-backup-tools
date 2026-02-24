@@ -149,7 +149,7 @@ describe('connections routes', () => {
         .set('Authorization', 'Bearer test-key');
 
       expect(res.status).toBe(400);
-      expect(res.body.error).toContain('Tipo nao suportado');
+      expect(res.body.error).toContain('Tipo não suportado');
     });
 
     it('should use default port when not provided', async () => {

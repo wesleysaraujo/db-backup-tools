@@ -6,3 +6,5 @@ backups/
 .env
 .claude/
 CLAUDE.md
+frontend/node_modules/
+frontend/dist/

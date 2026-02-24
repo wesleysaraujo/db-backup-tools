@@ -16,10 +16,10 @@ function printHelp(interactive: boolean = false): void {
 DB Backup Tool - CLI
 
 Uso:
-  ${prefix}connections list                    Listar conexoes
-  ${prefix}connections add                     Adicionar conexao (via args)
-  ${prefix}connections test <id>               Testar conexao
-  ${prefix}connections remove <id>             Remover conexao
+  ${prefix}connections list                    Listar conexões
+  ${prefix}connections add                     Adicionar conexão (via args)
+  ${prefix}connections test <id>               Testar conexão
+  ${prefix}connections remove <id>             Remover conexão
 
   ${prefix}backup run <connectionId> [--limit <n>]  Executar backup (--limit para parcial)
   ${prefix}backup list [--connection <id>]         Listar backups
@@ -49,7 +49,7 @@ async function handleConnections(inputArgs: string[]): Promise<void> {
     case 'list': {
       const connections = store.getConnections();
       if (connections.length === 0) {
-        console.log('Nenhuma conexao cadastrada.');
+        console.log('Nenhuma conexão cadastrada.');
         return;
       }
       for (const conn of connections) {
@@ -75,7 +75,7 @@ async function handleConnections(inputArgs: string[]): Promise<void> {
 
       const supportedTypes = getSupportedTypes();
       if (!supportedTypes.includes(type as any)) {
-        console.error(`Tipo nao suportado: ${type}. Disponiveis: ${supportedTypes.join(', ')}`);
+        console.error(`Tipo não suportado: ${type}. Disponiveis: ${supportedTypes.join(', ')}`);
         return;
       }
 
@@ -94,7 +94,7 @@ async function handleConnections(inputArgs: string[]): Promise<void> {
       };
 
       store.addConnection(connection);
-      console.log(`Conexao criada: ${connection.id}`);
+      console.log(`conexão criada: ${connection.id}`);
       break;
     }
 
@@ -106,9 +106,9 @@ async function handleConnections(inputArgs: string[]): Promise<void> {
       }
       const result = await testConnection(id);
       if (result.reachable) {
-        console.log('Conexao OK');
+        console.log('conexão OK');
       } else {
-        console.error(`Conexao falhou: ${result.error || 'motivo desconhecido'}`);
+        console.error(`conexão falhou: ${result.error || 'motivo desconhecido'}`);
       }
       break;
     }
@@ -120,7 +120,7 @@ async function handleConnections(inputArgs: string[]): Promise<void> {
         return;
       }
       const deleted = store.deleteConnection(id);
-      console.log(deleted ? 'Conexao removida' : 'Conexao nao encontrada');
+      console.log(deleted ? 'conexão removida' : 'conexão não encontrada');
       break;
     }
 
@@ -187,7 +187,7 @@ async function handleBackup(inputArgs: string[]): Promise<void> {
       }
       const backup = store.getBackup(backupId);
       if (!backup) {
-        console.error('Backup nao encontrado');
+        console.error('Backup não encontrado');
         return;
       }
       console.log(`Arquivo: ${backup.filepath}`);
@@ -241,7 +241,7 @@ function handleSchedule(inputArgs: string[]): void {
 
       const connection = store.getConnection(connectionId);
       if (!connection) {
-        console.error('Conexao nao encontrada');
+        console.error('conexão não encontrada');
         return;
       }
 
@@ -286,7 +286,7 @@ function handleSchedule(inputArgs: string[]): void {
       }
       const schedule = store.getSchedule(id);
       if (!schedule) {
-        console.error('Agendamento nao encontrado');
+        console.error('Agendamento não encontrado');
         return;
       }
       const updated = store.updateSchedule(id, { enabled: !schedule.enabled });
@@ -301,7 +301,7 @@ function handleSchedule(inputArgs: string[]): void {
         return;
       }
       const deleted = store.deleteSchedule(id);
-      console.log(deleted ? 'Agendamento removido' : 'Agendamento nao encontrado');
+      console.log(deleted ? 'Agendamento removido' : 'Agendamento não encontrado');
       break;
     }
 

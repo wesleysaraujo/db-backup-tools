@@ -42,18 +42,48 @@ router.get('/', (req, res) => {
 router.get('/:id/download', (req, res) => {
   const backup = store.getBackup(req.params['id']!);
   if (!backup) {
-    const response: ApiResponse = { success: false, error: 'Backup nao encontrado' };
+    const response: ApiResponse = { success: false, error: 'Backup não encontrado' };
     res.status(404).json(response);
     return;
   }
 
   if (!fs.existsSync(backup.filepath)) {
-    const response: ApiResponse = { success: false, error: 'Arquivo de backup nao encontrado no disco' };
+    const response: ApiResponse = { success: false, error: 'Arquivo de backup não encontrado no disco' };
     res.status(404).json(response);
     return;
   }
 
   res.download(backup.filepath, backup.filename);
+});
+
+// DELETE /api/backups/:id
+router.delete('/:id', (req, res) => {
+  const backup = store.getBackup(req.params['id']!);
+  if (!backup) {
+    const response: ApiResponse = { success: false, error: 'Backup não encontrado' };
+    res.status(404).json(response);
+    return;
+  }
+
+  if (fs.existsSync(backup.filepath)) {
+    try {
+      fs.unlinkSync(backup.filepath);
+    } catch (error: any) {
+      const response: ApiResponse = { success: false, error: error.message || 'Falha ao remover arquivo' };
+      res.status(400).json(response);
+      return;
+    }
+  }
+
+  const deleted = store.deleteBackup(backup.id);
+  if (!deleted) {
+    const response: ApiResponse = { success: false, error: 'Falha ao remover backup' };
+    res.status(400).json(response);
+    return;
+  }
+
+  const response: ApiResponse = { success: true, message: 'Backup removido' };
+  res.json(response);
 });
 
 // POST /api/backups/:id/restore

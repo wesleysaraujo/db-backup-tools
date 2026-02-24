@@ -261,7 +261,7 @@ describe('backups routes', () => {
       const res = await supertest.default(app).get('/api/backups/non-existent/download').set('Authorization', 'Bearer test-key');
 
       expect(res.status).toBe(404);
-      expect(res.body.error).toBe('Backup nao encontrado');
+      expect(res.body.error).toBe('Backup não encontrado');
     });
   });
 });

@@ -38,7 +38,7 @@ describe('authMiddleware', () => {
     next = jest.fn() as unknown as NextFunction;
   });
 
-  it('bloqueia tudo quando apiKey nao esta configurada', () => {
+  it('bloqueia tudo quando apiKey não está configurada', () => {
     const req = mockReq();
     const res = mockRes();
 

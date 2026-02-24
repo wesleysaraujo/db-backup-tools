@@ -22,7 +22,7 @@ function buildFilename(connectionName: string, database: string, extension: stri
 export async function runBackup(connectionId: string, options?: BackupOptions): Promise<BackupRecord> {
   const connection = store.getConnection(connectionId);
   if (!connection) {
-    throw new Error(`Conexao nao encontrada: ${connectionId}`);
+    throw new Error(`conexão não encontrada: ${connectionId}`);
   }
 
   const driver = getDriver(connection.type);
@@ -70,25 +70,25 @@ export async function runBackup(connectionId: string, options?: BackupOptions): 
 export async function runRestore(backupId: string, targetConnectionId: string): Promise<RestoreResult> {
   const backup = store.getBackup(backupId);
   if (!backup) {
-    throw new Error(`Backup nao encontrado: ${backupId}`);
+    throw new Error(`Backup não encontrado: ${backupId}`);
   }
 
   if (backup.status !== 'completed') {
-    throw new Error(`Backup nao esta completo (status: ${backup.status})`);
+    throw new Error(`Backup não está completo (status: ${backup.status})`);
   }
 
   if (!fs.existsSync(backup.filepath)) {
-    throw new Error(`Arquivo de backup nao encontrado no disco: ${backup.filepath}`);
+    throw new Error(`Arquivo de backup não encontrado no disco: ${backup.filepath}`);
   }
 
   const connection = store.getConnection(targetConnectionId);
   if (!connection) {
-    throw new Error(`Conexao nao encontrada: ${targetConnectionId}`);
+    throw new Error(`conexão não encontrada: ${targetConnectionId}`);
   }
 
   if (connection.type !== backup.databaseType) {
     throw new Error(
-      `Tipo incompativel: backup e ${backup.databaseType}, conexao e ${connection.type}. Restore cross-database nao e permitido.`
+      `Tipo incompativel: backup e ${backup.databaseType}, conexão e ${connection.type}. Restore cross-database não e permitido.`
     );
   }
 
@@ -99,7 +99,7 @@ export async function runRestore(backupId: string, targetConnectionId: string): 
 export async function testConnection(connectionId: string): Promise<TestConnectionResult> {
   const connection = store.getConnection(connectionId);
   if (!connection) {
-    throw new Error(`Conexao nao encontrada: ${connectionId}`);
+    throw new Error(`conexão não encontrada: ${connectionId}`);
   }
 
   const driver = getDriver(connection.type);

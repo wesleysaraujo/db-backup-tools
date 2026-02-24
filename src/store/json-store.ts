@@ -103,6 +103,16 @@ export class JsonStore {
     return this.data.backups[idx]!;
   }
 
+  deleteBackup(id: string): boolean {
+    const len = this.data.backups.length;
+    this.data.backups = this.data.backups.filter(b => b.id !== id);
+    if (this.data.backups.length < len) {
+      this.persist();
+      return true;
+    }
+    return false;
+  }
+
   // === Schedules ===
   getSchedules(connectionId?: string): ScheduleConfig[] {
     return connectionId

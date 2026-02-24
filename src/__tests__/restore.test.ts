@@ -169,24 +169,24 @@ describe('runRestore', () => {
 
   it('should throw when backup is not found', async () => {
     mockStore.getBackup.mockReturnValue(undefined);
-    await expect(runRestore('non-existent', 'conn-1')).rejects.toThrow('Backup nao encontrado');
+    await expect(runRestore('non-existent', 'conn-1')).rejects.toThrow('Backup não encontrado');
   });
 
   it('should throw when backup status is not completed', async () => {
     mockStore.getBackup.mockReturnValue(makeBackupRecord({ status: 'failed' }));
-    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Backup nao esta completo');
+    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Backup não está completo');
   });
 
   it('should throw when backup file does not exist on disk', async () => {
     mockStore.getBackup.mockReturnValue(makeBackupRecord());
     (fs.existsSync as jest.Mock).mockReturnValue(false);
-    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Arquivo de backup nao encontrado no disco');
+    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Arquivo de backup não encontrado no disco');
   });
 
   it('should throw when connection is not found', async () => {
     mockStore.getBackup.mockReturnValue(makeBackupRecord());
     mockStore.getConnection.mockReturnValue(undefined);
-    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Conexao nao encontrada');
+    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('conexão não encontrada');
   });
 
   it('should throw when database types are incompatible', async () => {

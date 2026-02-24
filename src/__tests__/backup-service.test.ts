@@ -86,7 +86,7 @@ describe('backup.service', () => {
   describe('runBackup', () => {
     it('should throw when connection is not found', async () => {
       mockStore.getConnection.mockReturnValue(undefined);
-      await expect(runBackup('non-existent')).rejects.toThrow('Conexao nao encontrada');
+      await expect(runBackup('non-existent')).rejects.toThrow('conexão não encontrada');
     });
 
     it('should execute backup and return a completed record on success', async () => {
@@ -208,7 +208,7 @@ describe('backup.service', () => {
   describe('testConnection', () => {
     it('should throw when connection is not found', async () => {
       mockStore.getConnection.mockReturnValue(undefined);
-      await expect(testConnection('non-existent')).rejects.toThrow('Conexao nao encontrada');
+      await expect(testConnection('non-existent')).rejects.toThrow('conexão não encontrada');
     });
 
     it('should return reachable true when driver reports connection is reachable', async () => {

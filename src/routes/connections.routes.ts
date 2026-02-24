@@ -36,7 +36,7 @@ router.post('/', (req, res) => {
   const { data } = parsed;
   const supportedTypes = getSupportedTypes();
   if (!supportedTypes.includes(data.type)) {
-    const response: ApiResponse = { success: false, error: `Tipo nao suportado: ${data.type}. Tipos disponiveis: ${supportedTypes.join(', ')}` };
+    const response: ApiResponse = { success: false, error: `Tipo não suportado: ${data.type}. Tipos disponiveis: ${supportedTypes.join(', ')}` };
     res.status(400).json(response);
     return;
   }
@@ -57,7 +57,7 @@ router.post('/', (req, res) => {
 
   store.addConnection(connection);
 
-  const response: ApiResponse = { success: true, data: maskConnection(connection), message: 'Conexao criada' };
+  const response: ApiResponse = { success: true, data: maskConnection(connection), message: 'conexão criada' };
   res.status(201).json(response);
 });
 
@@ -72,7 +72,7 @@ router.get('/', (_req, res) => {
 router.get('/:id', (req, res) => {
   const connection = store.getConnection(req.params['id']!);
   if (!connection) {
-    const response: ApiResponse = { success: false, error: 'Conexao nao encontrada' };
+    const response: ApiResponse = { success: false, error: 'conexão não encontrada' };
     res.status(404).json(response);
     return;
   }
@@ -87,7 +87,7 @@ router.post('/:id/test', async (req, res) => {
     const response: ApiResponse = {
       success: true,
       data: { reachable: result.reachable, error: result.error },
-      message: result.reachable ? 'Conexao OK' : 'Conexao falhou',
+      message: result.reachable ? 'conexão OK' : 'conexão falhou',
     };
     res.json(response);
   } catch (err: any) {
@@ -107,12 +107,12 @@ router.put('/:id', (req, res) => {
 
   const updated = store.updateConnection(req.params['id']!, parsed.data as Partial<ConnectionConfig>);
   if (!updated) {
-    const response: ApiResponse = { success: false, error: 'Conexao nao encontrada' };
+    const response: ApiResponse = { success: false, error: 'conexão não encontrada' };
     res.status(404).json(response);
     return;
   }
 
-  const response: ApiResponse = { success: true, data: maskConnection(updated), message: 'Conexao atualizada' };
+  const response: ApiResponse = { success: true, data: maskConnection(updated), message: 'conexão atualizada' };
   res.json(response);
 });
 
@@ -120,11 +120,11 @@ router.put('/:id', (req, res) => {
 router.delete('/:id', (req, res) => {
   const deleted = store.deleteConnection(req.params['id']!);
   if (!deleted) {
-    const response: ApiResponse = { success: false, error: 'Conexao nao encontrada' };
+    const response: ApiResponse = { success: false, error: 'conexão não encontrada' };
     res.status(404).json(response);
     return;
   }
-  const response: ApiResponse = { success: true, message: 'Conexao removida' };
+  const response: ApiResponse = { success: true, message: 'conexão removida' };
   res.json(response);
 });
 
