@@ -1,0 +1,48 @@
+{
+  "name": "db-backup-tool",
+  "version": "1.0.0",
+  "description": "Ferramenta de backup de banco de dados com arquitetura de driver extensível (Padrão de Strategy). Suporta MySQL com extensão fácil para PostgreSQL, MongoDB, etc.",
+  "type": "module",
+  "main": "dist/server.js",
+  "scripts": {
+    "dev": "tsx watch src/server.ts",
+    "build": "tsc",
+    "start": "node dist/server.js",
+    "cli": "tsx src/cli/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "node --experimental-vm-modules node_modules/.bin/jest",
+    "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
+  },
+  "keywords": [
+    "backup",
+    "database",
+    "mysql",
+    "cli"
+  ],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "better-sqlite3": "^12.6.2",
+    "cors": "^2.8.5",
+    "express": "^4.21.2",
+    "node-cron": "^3.0.3",
+    "typescript": "^5.7.3",
+    "uuid": "^11.1.0",
+    "zod": "^3.24.2"
+  },
+  "devDependencies": {
+    "@jest/globals": "^30.2.0",
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/cors": "^2.8.17",
+    "@types/express": "^5.0.0",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.3.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/supertest": "^6.0.3",
+    "@types/uuid": "^10.0.0",
+    "jest": "^30.2.0",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.19.3"
+  }
+}

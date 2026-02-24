@@ -1,0 +1,14 @@
+services:
+  app:
+    build: .
+    ports:
+      - "3777:3777"
+    environment:
+      - PORT=3777
+      - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-local-key-change-in-production}
+      - BACKUP_DIR=/app/backups
+      - DATA_DIR=/app/data
+    volumes:
+      - ./data:/app/data
+      - ./backups:/app/backups
+    restart: unless-stopped

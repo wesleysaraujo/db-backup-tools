@@ -1,0 +1,358 @@
+{
+  "info": {
+    "name": "DB Backup Tools API",
+    "description": "API REST para backup de bancos de dados com arquitetura extensivel via Strategy Pattern.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "baseUrl",
+      "value": "http://localhost:3777",
+      "type": "string"
+    },
+    {
+      "key": "connectionId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "backupId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "scheduleId",
+      "value": "",
+      "type": "string"
+    },
+    {
+      "key": "apiKey",
+      "value": "",
+      "type": "string"
+    }
+  ],
+  "auth": {
+    "type": "bearer",
+    "bearer": [
+      {
+        "key": "token",
+        "value": "{{apiKey}}",
+        "type": "string"
+      }
+    ]
+  },
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "auth": {
+              "type": "noauth"
+            },
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/health",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "health"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Connections",
+      "item": [
+        {
+          "name": "Criar conexao",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('connectionId', res.data.id);",
+                  "    console.log('connectionId salvo:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"meu-banco\",\n  \"type\": \"mysql\",\n  \"host\": \"localhost\",\n  \"port\": 3306,\n  \"username\": \"root\",\n  \"password\": \"minhasenha\",\n  \"database\": \"meudatabase\"\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/connections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections"]
+            }
+          }
+        },
+        {
+          "name": "Listar conexoes",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/connections",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections"]
+            }
+          }
+        },
+        {
+          "name": "Detalhe da conexao",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/connections/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections", "{{connectionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Testar conexao",
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/connections/{{connectionId}}/test",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections", "{{connectionId}}", "test"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar conexao",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"name\": \"meu-banco-atualizado\",\n  \"host\": \"192.168.1.100\",\n  \"port\": 3307\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/connections/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections", "{{connectionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Remover conexao",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/connections/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "connections", "{{connectionId}}"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Backups",
+      "item": [
+        {
+          "name": "Executar backup",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('backupId', res.data.id);",
+                  "    console.log('backupId salvo:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/backups/{{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "backups", "{{connectionId}}"]
+            }
+          }
+        },
+        {
+          "name": "Listar backups",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/backups",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "backups"]
+            }
+          }
+        },
+        {
+          "name": "Listar backups por conexao",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/backups?connectionId={{connectionId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "backups"],
+              "query": [
+                {
+                  "key": "connectionId",
+                  "value": "{{connectionId}}"
+                }
+              ]
+            }
+          }
+        },
+        {
+          "name": "Download backup",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/backups/{{backupId}}/download",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "backups", "{{backupId}}", "download"]
+            }
+          }
+        },
+        {
+          "name": "Restaurar backup",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"connectionId\": \"{{connectionId}}\",\n  \"confirm\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/backups/{{backupId}}/restore",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "backups", "{{backupId}}", "restore"]
+            },
+            "description": "Restaura um backup na conexao especificada. connectionId e obrigatorio no body."
+          }
+        }
+      ]
+    },
+    {
+      "name": "Schedules",
+      "item": [
+        {
+          "name": "Criar agendamento",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "const res = pm.response.json();",
+                  "if (res.success && res.data && res.data.id) {",
+                  "    pm.collectionVariables.set('scheduleId', res.data.id);",
+                  "    console.log('scheduleId salvo:', res.data.id);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"connectionId\": \"{{connectionId}}\",\n  \"cronExpression\": \"0 2 * * *\",\n  \"enabled\": true\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            }
+          }
+        },
+        {
+          "name": "Listar agendamentos",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules"]
+            }
+          }
+        },
+        {
+          "name": "Atualizar agendamento",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"cronExpression\": \"0 3 * * *\",\n  \"enabled\": false\n}"
+            },
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            }
+          }
+        },
+        {
+          "name": "Remover agendamento",
+          "request": {
+            "method": "DELETE",
+            "header": [],
+            "url": {
+              "raw": "{{baseUrl}}/api/schedules/{{scheduleId}}",
+              "host": ["{{baseUrl}}"],
+              "path": ["api", "schedules", "{{scheduleId}}"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}
