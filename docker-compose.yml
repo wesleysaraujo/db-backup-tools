@@ -13,3 +13,11 @@ services:
       - ./data:/app/data
       - ./backups:/app/backups
     restart: unless-stopped
+
+  frontend:
+    build: ./frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - app
+    restart: unless-stopped

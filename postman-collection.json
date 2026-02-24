@@ -194,12 +194,27 @@
           ],
           "request": {
             "method": "POST",
-            "header": [],
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"rowLimit\": 1000\n}",
+              "options": {
+                "raw": {
+                  "language": "json"
+                }
+              }
+            },
             "url": {
               "raw": "{{baseUrl}}/api/backups/{{connectionId}}",
               "host": ["{{baseUrl}}"],
               "path": ["api", "backups", "{{connectionId}}"]
-            }
+            },
+            "description": "Executa backup. Body opcional: { \"rowLimit\": 1000 } para backup parcial (limita linhas por tabela). Sem body executa backup completo."
           }
         },
         {

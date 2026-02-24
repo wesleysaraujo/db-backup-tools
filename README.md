@@ -109,6 +109,15 @@ Abra `http://localhost:5173` e configure o **API Base URL** (ex: `http://localho
 | DELETE | `/api/backups/:id`            | Remover backup               |
 | POST   | `/api/backups/:id/restore`    | Restaurar backup             |
 
+**Backup parcial:** O `POST /api/backups/:connectionId` aceita body opcional:
+
+```json
+{ "rowLimit": 1000 }
+```
+
+Quando `rowLimit` é informado, limita o número de linhas por tabela no dump (inteiro entre 1 e 1.000.000). Sem body, executa backup completo.
+O rowLimit é aplicado usando as opções nativas dos drivers (ex: `--where "1=1 LIMIT 1000"` para MySQL) para garantir performance e baixo consumo de memória, mesmo em bancos grandes.
+
 ### Schedules
 
 | Método | Rota                    | Descrição                         |
