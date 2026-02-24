@@ -4,7 +4,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { config } from '../config/index.js';
 import { getDriver } from '../drivers/driver-registry.js';
 import { store } from '../store/index.js';
-import type { BackupRecord, BackupOptions, RestoreResult } from '../types/index.js';
+import type { BackupRecord, BackupOptions, RestoreResult, TestConnectionResult } from '../types/index.js';
 
 function ensureBackupDir(): void {
   if (!fs.existsSync(config.backupDir)) {
@@ -96,7 +96,7 @@ export async function runRestore(backupId: string, targetConnectionId: string): 
   return driver.restore(connection, backup.filepath);
 }
 
-export async function testConnection(connectionId: string): Promise<boolean> {
+export async function testConnection(connectionId: string): Promise<TestConnectionResult> {
   const connection = store.getConnection(connectionId);
   if (!connection) {
     throw new Error(`Conexao nao encontrada: ${connectionId}`);

@@ -5,6 +5,7 @@ services:
       - "3777:3777"
     environment:
       - PORT=3777
+      - API_KEY=${API_KEY:-dev-local-api-key-change-in-production}
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-local-key-change-in-production}
       - BACKUP_DIR=/app/backups
       - DATA_DIR=/app/data

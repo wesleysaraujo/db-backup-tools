@@ -83,8 +83,12 @@ router.get('/:id', (req, res) => {
 // POST /api/connections/:id/test
 router.post('/:id/test', async (req, res) => {
   try {
-    const reachable = await testConnection(req.params['id']!);
-    const response: ApiResponse = { success: true, data: { reachable }, message: reachable ? 'Conexao OK' : 'Conexao falhou' };
+    const result = await testConnection(req.params['id']!);
+    const response: ApiResponse = {
+      success: true,
+      data: { reachable: result.reachable, error: result.error },
+      message: result.reachable ? 'Conexao OK' : 'Conexao falhou',
+    };
     res.json(response);
   } catch (err: any) {
     const response: ApiResponse = { success: false, error: err.message };

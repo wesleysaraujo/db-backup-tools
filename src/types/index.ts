@@ -63,7 +63,7 @@ export interface DatabaseDriver {
   readonly fileExtension: string;
 
   /** Test if connection is reachable */
-  testConnection(config: ConnectionConfig): Promise<boolean>;
+  testConnection(config: ConnectionConfig): Promise<TestConnectionResult>;
 
   /** Execute a backup, return the output filepath */
   backup(config: ConnectionConfig, outputPath: string, options?: BackupOptions): Promise<BackupResult>;
@@ -76,6 +76,11 @@ export interface DatabaseDriver {
 
   /** Get the CLI command for restore (for display/debug, password masked) */
   getRestoreCommand(config: ConnectionConfig, inputPath: string): string;
+}
+
+export interface TestConnectionResult {
+  reachable: boolean;
+  error?: string;
 }
 
 export interface BackupResult {

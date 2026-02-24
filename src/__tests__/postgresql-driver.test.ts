@@ -66,9 +66,10 @@ describe('PostgreSQLDriver', () => {
   });
 
   describe('testConnection', () => {
-    it('should return false when pg_isready is not available', async () => {
+    it('should return reachable false when pg_isready is not available', async () => {
       const result = await driver.testConnection(mockConfig);
-      expect(typeof result).toBe('boolean');
+      expect(result.reachable).toBe(false);
+      expect(result.error).toBeDefined();
     });
   });
 

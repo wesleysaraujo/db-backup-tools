@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
+import readline from 'node:readline/promises';
 import { v4 as uuidv4 } from 'uuid';
 import { store } from '../store/index.js';
 import { getSupportedTypes } from '../drivers/driver-registry.js';
@@ -9,42 +10,41 @@ import { validateCron } from '../services/scheduler.service.js';
 import { startServer } from '../server.js';
 import type { ConnectionConfig, ScheduleConfig } from '../types/index.js';
 
-const args = process.argv.slice(2);
-const command = args[0];
-const subcommand = args[1];
-
-function printHelp(): void {
+function printHelp(interactive: boolean = false): void {
+  const prefix = interactive ? '' : 'cli ';
   console.log(`
 DB Backup Tool - CLI
 
 Uso:
-  cli connections list                    Listar conexoes
-  cli connections add                     Adicionar conexao (via args)
-  cli connections test <id>               Testar conexao
-  cli connections remove <id>             Remover conexao
+  ${prefix}connections list                    Listar conexoes
+  ${prefix}connections add                     Adicionar conexao (via args)
+  ${prefix}connections test <id>               Testar conexao
+  ${prefix}connections remove <id>             Remover conexao
 
-  cli backup run <connectionId> [--limit <n>]  Executar backup (--limit para parcial)
-  cli backup list [--connection <id>]         Listar backups
-  cli backup download <backupId>          Info do backup para download
-  cli backup restore <backupId> --confirm [--connection <id>]  Restaurar backup
+  ${prefix}backup run <connectionId> [--limit <n>]  Executar backup (--limit para parcial)
+  ${prefix}backup list [--connection <id>]         Listar backups
+  ${prefix}backup download <backupId>          Info do backup para download
+  ${prefix}backup restore <backupId> --confirm [--connection <id>]  Restaurar backup
 
-  cli schedule add <connId> "<cron>"      Criar agendamento
-  cli schedule list                       Listar agendamentos
-  cli schedule toggle <id>                Ativar/desativar agendamento
-  cli schedule remove <id>                Remover agendamento
+  ${prefix}schedule add <connId> "<cron>"      Criar agendamento
+  ${prefix}schedule list                       Listar agendamentos
+  ${prefix}schedule toggle <id>                Ativar/desativar agendamento
+  ${prefix}schedule remove <id>                Remover agendamento
 
-  cli apikey generate                     Gerar API key e salvar no .env
-  cli encryptionkey generate              Gerar ENCRYPTION_KEY e salvar no .env
+  ${prefix}apikey generate                     Gerar API key e salvar no .env
+  ${prefix}encryptionkey generate              Gerar ENCRYPTION_KEY e salvar no .env
 
-  cli serve [--port 3777]                 Iniciar servidor API
+  ${prefix}serve [--port 3777]                 Iniciar servidor API
   `);
 }
 
 function maskPassword(conn: ConnectionConfig): string {
-  return `[${conn.id.substring(0, 8)}] ${conn.name} | ${conn.type}://${conn.username}:****@${conn.host}:${conn.port}/${conn.database}`;
+  return `[${conn.id}] ${conn.name} | ${conn.type}://${conn.username}:****@${conn.host}:${conn.port}/${conn.database}`;
 }
 
-async function handleConnections(): Promise<void> {
+async function handleConnections(inputArgs: string[]): Promise<void> {
+  const subcommand = inputArgs[1];
+
   switch (subcommand) {
     case 'list': {
       const connections = store.getConnections();
@@ -59,24 +59,24 @@ async function handleConnections(): Promise<void> {
     }
 
     case 'add': {
-      const name = args[2];
-      const type = args[3];
-      const host = args[4];
-      const port = args[5];
-      const username = args[6];
-      const password = args[7];
-      const database = args[8];
+      const name = inputArgs[2];
+      const type = inputArgs[3];
+      const host = inputArgs[4];
+      const port = inputArgs[5];
+      const username = inputArgs[6];
+      const password = inputArgs[7];
+      const database = inputArgs[8];
 
       if (!name || !type || !host || !port || !username || !password || !database) {
-        console.log('Uso: cli connections add <name> <type> <host> <port> <username> <password> <database>');
+        console.error('Uso: connections add <name> <type> <host> <port> <username> <password> <database>');
         console.log(`Tipos suportados: ${getSupportedTypes().join(', ')}`);
-        process.exit(1);
+        return;
       }
 
       const supportedTypes = getSupportedTypes();
       if (!supportedTypes.includes(type as any)) {
         console.error(`Tipo nao suportado: ${type}. Disponiveis: ${supportedTypes.join(', ')}`);
-        process.exit(1);
+        return;
       }
 
       const now = new Date().toISOString();
@@ -99,26 +99,25 @@ async function handleConnections(): Promise<void> {
     }
 
     case 'test': {
-      const id = args[2];
+      const id = inputArgs[2];
       if (!id) {
-        console.log('Uso: cli connections test <id>');
-        process.exit(1);
+        console.error('Uso: connections test <id>');
+        return;
       }
-      try {
-        const ok = await testConnection(id);
-        console.log(ok ? 'Conexao OK' : 'Conexao falhou');
-      } catch (err: any) {
-        console.error(err.message);
-        process.exit(1);
+      const result = await testConnection(id);
+      if (result.reachable) {
+        console.log('Conexao OK');
+      } else {
+        console.error(`Conexao falhou: ${result.error || 'motivo desconhecido'}`);
       }
       break;
     }
 
     case 'remove': {
-      const id = args[2];
+      const id = inputArgs[2];
       if (!id) {
-        console.log('Uso: cli connections remove <id>');
-        process.exit(1);
+        console.error('Uso: connections remove <id>');
+        return;
       }
       const deleted = store.deleteConnection(id);
       console.log(deleted ? 'Conexao removida' : 'Conexao nao encontrada');
@@ -130,47 +129,44 @@ async function handleConnections(): Promise<void> {
   }
 }
 
-async function handleBackup(): Promise<void> {
+async function handleBackup(inputArgs: string[]): Promise<void> {
+  const subcommand = inputArgs[1];
+
   switch (subcommand) {
     case 'run': {
-      const connectionId = args[2];
+      const connectionId = inputArgs[2];
       if (!connectionId) {
-        console.log('Uso: cli backup run <connectionId> [--limit <n>]');
-        process.exit(1);
+        console.error('Uso: backup run <connectionId> [--limit <n>]');
+        return;
       }
 
-      const limitFlag = args.indexOf('--limit');
-      const rowLimit = limitFlag !== -1 ? parseInt(args[limitFlag + 1]!, 10) : undefined;
+      const limitFlag = inputArgs.indexOf('--limit');
+      const rowLimit = limitFlag !== -1 ? parseInt(inputArgs[limitFlag + 1]!, 10) : undefined;
       if (limitFlag !== -1 && (!rowLimit || isNaN(rowLimit) || rowLimit < 1)) {
         console.error('--limit deve ser um numero inteiro positivo');
-        process.exit(1);
+        return;
       }
 
       const options = rowLimit ? { rowLimit } : undefined;
 
-      try {
-        console.log(rowLimit ? `Executando backup parcial (limit: ${rowLimit} rows)...` : 'Executando backup...');
-        const record = await runBackup(connectionId, options);
-        console.log(`Backup ${record.status}: ${record.filename}`);
-        if (record.sizeBytes) {
-          console.log(`Tamanho: ${(record.sizeBytes / 1024).toFixed(1)} KB`);
-        }
-        if (record.duration) {
-          console.log(`Duracao: ${record.duration}ms`);
-        }
-        if (record.errorMessage) {
-          console.error(`Erro: ${record.errorMessage}`);
-        }
-      } catch (err: any) {
-        console.error(err.message);
-        process.exit(1);
+      console.log(rowLimit ? `Executando backup parcial (limit: ${rowLimit} rows)...` : 'Executando backup...');
+      const record = await runBackup(connectionId, options);
+      console.log(`Backup ${record.status}: ${record.filename}`);
+      if (record.sizeBytes) {
+        console.log(`Tamanho: ${(record.sizeBytes / 1024).toFixed(1)} KB`);
+      }
+      if (record.duration) {
+        console.log(`Duracao: ${record.duration}ms`);
+      }
+      if (record.errorMessage) {
+        console.error(`Erro: ${record.errorMessage}`);
       }
       break;
     }
 
     case 'list': {
-      const connFlag = args.indexOf('--connection');
-      const connectionId = connFlag !== -1 ? args[connFlag + 1] : undefined;
+      const connFlag = inputArgs.indexOf('--connection');
+      const connectionId = connFlag !== -1 ? inputArgs[connFlag + 1] : undefined;
       const backups = store.getBackups(connectionId);
       if (backups.length === 0) {
         console.log('Nenhum backup encontrado.');
@@ -178,21 +174,21 @@ async function handleBackup(): Promise<void> {
       }
       for (const b of backups) {
         const size = b.sizeBytes ? `${(b.sizeBytes / 1024).toFixed(1)} KB` : '-';
-        console.log(`[${b.id.substring(0, 8)}] ${b.status.padEnd(9)} | ${b.filename} | ${size} | ${b.startedAt}`);
+        console.log(`[${b.id}] ${b.status.padEnd(9)} | ${b.filename} | ${size} | ${b.startedAt}`);
       }
       break;
     }
 
     case 'download': {
-      const backupId = args[2];
+      const backupId = inputArgs[2];
       if (!backupId) {
-        console.log('Uso: cli backup download <backupId>');
-        process.exit(1);
+        console.error('Uso: backup download <backupId>');
+        return;
       }
       const backup = store.getBackup(backupId);
       if (!backup) {
         console.error('Backup nao encontrado');
-        process.exit(1);
+        return;
       }
       console.log(`Arquivo: ${backup.filepath}`);
       console.log(`Filename: ${backup.filename}`);
@@ -200,33 +196,27 @@ async function handleBackup(): Promise<void> {
     }
 
     case 'restore': {
-      const backupId = args[2];
-      const connFlag = args.indexOf('--connection');
-      const targetConnectionId = connFlag !== -1 ? args[connFlag + 1] : undefined;
+      const backupId = inputArgs[2];
+      const connFlag = inputArgs.indexOf('--connection');
+      const targetConnectionId = connFlag !== -1 ? inputArgs[connFlag + 1] : undefined;
 
       if (!backupId || !targetConnectionId) {
-        console.log('Uso: cli backup restore <backupId> --confirm --connection <targetId>');
-        process.exit(1);
+        console.error('Uso: backup restore <backupId> --confirm --connection <targetId>');
+        return;
       }
 
-      if (!args.includes('--confirm')) {
+      if (!inputArgs.includes('--confirm')) {
         console.error('ATENCAO: Restore e uma operacao destrutiva que sobrescreve dados no banco.');
         console.error('Adicione --confirm para confirmar a operacao.');
-        process.exit(1);
+        return;
       }
 
-      try {
-        console.log('Executando restore...');
-        const result = await runRestore(backupId, targetConnectionId);
-        if (result.success) {
-          console.log(`Restore concluido com sucesso em ${result.duration}ms`);
-        } else {
-          console.error(`Restore falhou: ${result.errorMessage}`);
-          process.exit(1);
-        }
-      } catch (err: any) {
-        console.error(err.message);
-        process.exit(1);
+      console.log('Executando restore...');
+      const result = await runRestore(backupId, targetConnectionId);
+      if (result.success) {
+        console.log(`Restore concluido com sucesso em ${result.duration}ms`);
+      } else {
+        console.error(`Restore falhou: ${result.errorMessage}`);
       }
       break;
     }
@@ -236,26 +226,28 @@ async function handleBackup(): Promise<void> {
   }
 }
 
-function handleSchedule(): void {
+function handleSchedule(inputArgs: string[]): void {
+  const subcommand = inputArgs[1];
+
   switch (subcommand) {
     case 'add': {
-      const connectionId = args[2];
-      const cronExpr = args[3];
+      const connectionId = inputArgs[2];
+      const cronExpr = inputArgs[3];
 
       if (!connectionId || !cronExpr) {
-        console.log('Uso: cli schedule add <connectionId> "<cron>"');
-        process.exit(1);
+        console.error('Uso: schedule add <connectionId> "<cron>"');
+        return;
       }
 
       const connection = store.getConnection(connectionId);
       if (!connection) {
         console.error('Conexao nao encontrada');
-        process.exit(1);
+        return;
       }
 
       if (!validateCron(cronExpr)) {
         console.error('Expressao cron invalida');
-        process.exit(1);
+        return;
       }
 
       const schedule: ScheduleConfig = {
@@ -281,21 +273,21 @@ function handleSchedule(): void {
       }
       for (const s of schedules) {
         const status = s.enabled ? 'ativo' : 'inativo';
-        console.log(`[${s.id.substring(0, 8)}] ${status.padEnd(7)} | ${s.cronExpression} | conn: ${s.connectionId.substring(0, 8)}`);
+        console.log(`[${s.id}] ${status.padEnd(7)} | ${s.cronExpression} | conn: ${s.connectionId}`);
       }
       break;
     }
 
     case 'toggle': {
-      const id = args[2];
+      const id = inputArgs[2];
       if (!id) {
-        console.log('Uso: cli schedule toggle <id>');
-        process.exit(1);
+        console.error('Uso: schedule toggle <id>');
+        return;
       }
       const schedule = store.getSchedule(id);
       if (!schedule) {
         console.error('Agendamento nao encontrado');
-        process.exit(1);
+        return;
       }
       const updated = store.updateSchedule(id, { enabled: !schedule.enabled });
       console.log(`Agendamento ${updated?.enabled ? 'ativado' : 'desativado'}`);
@@ -303,10 +295,10 @@ function handleSchedule(): void {
     }
 
     case 'remove': {
-      const id = args[2];
+      const id = inputArgs[2];
       if (!id) {
-        console.log('Uso: cli schedule remove <id>');
-        process.exit(1);
+        console.error('Uso: schedule remove <id>');
+        return;
       }
       const deleted = store.deleteSchedule(id);
       console.log(deleted ? 'Agendamento removido' : 'Agendamento nao encontrado');
@@ -337,7 +329,8 @@ function setEnvVar(varName: string, value: string): string {
   return envPath;
 }
 
-function handleApiKey(): void {
+function handleApiKey(inputArgs: string[]): void {
+  const subcommand = inputArgs[1];
   if (subcommand !== 'generate') {
     console.log('Subcomandos: generate');
     return;
@@ -351,7 +344,8 @@ function handleApiKey(): void {
   console.log('Reinicie o servidor para aplicar.');
 }
 
-function handleEncryptionKey(): void {
+function handleEncryptionKey(inputArgs: string[]): void {
+  const subcommand = inputArgs[1];
   if (subcommand !== 'generate') {
     console.log('Subcomandos: generate');
     return;
@@ -377,34 +371,79 @@ function handleEncryptionKey(): void {
   console.log('Reinicie o servidor para aplicar.');
 }
 
-function handleServe(): void {
-  const portFlag = args.indexOf('--port');
-  const port = portFlag !== -1 ? parseInt(args[portFlag + 1]!, 10) : undefined;
+function handleServe(inputArgs: string[]): void {
+  const portFlag = inputArgs.indexOf('--port');
+  const port = portFlag !== -1 ? parseInt(inputArgs[portFlag + 1]!, 10) : undefined;
   startServer(port);
 }
 
-async function main(): Promise<void> {
+async function executeCommand(inputArgs: string[]): Promise<void> {
+  const command = inputArgs[0];
+
   switch (command) {
     case 'connections':
-      await handleConnections();
+      await handleConnections(inputArgs);
       break;
     case 'backup':
-      await handleBackup();
+      await handleBackup(inputArgs);
       break;
     case 'schedule':
-      handleSchedule();
+      handleSchedule(inputArgs);
       break;
     case 'apikey':
-      handleApiKey();
+      handleApiKey(inputArgs);
       break;
     case 'encryptionkey':
-      handleEncryptionKey();
+      handleEncryptionKey(inputArgs);
       break;
     case 'serve':
-      handleServe();
+      handleServe(inputArgs);
+      break;
+    case 'help':
+      printHelp(true);
       break;
     default:
-      printHelp();
+      printHelp(false);
+  }
+}
+
+async function startInteractive(): Promise<void> {
+  const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
+
+  console.log('DB Backup Tool - Modo interativo');
+  console.log('Digite "help" para ver comandos, "exit" para sair.\n');
+
+  while (true) {
+    const line = await rl.question('db-backup> ');
+    const parts = line.trim().split(/\s+/);
+
+    if (!parts[0] || parts[0] === '') continue;
+    if (parts[0] === 'exit' || parts[0] === 'quit') {
+      console.log('Ate logo!');
+      rl.close();
+      break;
+    }
+
+    try {
+      await executeCommand(parts);
+    } catch (err: any) {
+      console.error(err.message);
+    }
+  }
+}
+
+async function main(): Promise<void> {
+  const cliArgs = process.argv.slice(2);
+
+  if (cliArgs.length === 0 || cliArgs[0] === '--interactive') {
+    await startInteractive();
+  } else {
+    try {
+      await executeCommand(cliArgs);
+    } catch (err: any) {
+      console.error(err.message);
+      process.exit(1);
+    }
   }
 }
 

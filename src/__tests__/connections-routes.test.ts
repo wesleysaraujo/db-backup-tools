@@ -34,7 +34,7 @@ jest.unstable_mockModule('../store/index.js', () => ({
 }));
 
 // Mock driver-registry
-const mockTestConnectionDriver = jest.fn<(config: ConnectionConfig) => Promise<boolean>>();
+const mockTestConnectionDriver = jest.fn<any>();
 
 const mockDriver: DatabaseDriver = {
   type: 'mysql',
@@ -270,7 +270,7 @@ describe('connections routes', () => {
     it('should return reachable true when driver succeeds', async () => {
       const conn = makeConnection({ id: 'test-id' });
       mockGetConnection.mockReturnValue(conn);
-      mockTestConnectionDriver.mockResolvedValue(true);
+      mockTestConnectionDriver.mockResolvedValue({ reachable: true });
 
       const res = await supertest.default(app).post('/api/connections/test-id/test').set('Authorization', 'Bearer test-key');
 

@@ -1,7 +1,7 @@
 import { execFile, spawn } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
-import type { DatabaseDriver, ConnectionConfig, BackupResult, BackupOptions, RestoreResult } from '../types/index.js';
+import type { DatabaseDriver, ConnectionConfig, BackupResult, BackupOptions, RestoreResult, TestConnectionResult } from '../types/index.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -11,19 +11,24 @@ export class MySQLDriver implements DatabaseDriver {
   readonly defaultPort = 3306;
   readonly fileExtension = '.sql';
 
-  async testConnection(config: ConnectionConfig): Promise<boolean> {
+  async testConnection(config: ConnectionConfig): Promise<TestConnectionResult> {
     try {
       const { stdout } = await execFileAsync('mysqladmin', [
         `-h${config.host}`,
         `-P${config.port}`,
         `-u${config.username}`,
         `--password=${config.password}`,
+        '--skip-ssl-verify-server-cert',
         'ping',
       ], { timeout: 10000 });
 
-      return stdout.includes('alive');
-    } catch {
-      return false;
+      if (stdout.includes('alive')) {
+        return { reachable: true };
+      }
+      return { reachable: false, error: 'mysqladmin did not return alive' };
+    } catch (err: any) {
+      const msg = err?.stderr || err?.message || 'Unknown error';
+      return { reachable: false, error: msg };
     }
   }
 
@@ -38,9 +43,7 @@ export class MySQLDriver implements DatabaseDriver {
       '--routines',
       '--triggers',
       '--events',
-      '--set-gtid-purged=OFF',
       '--no-tablespaces',
-      '--column-statistics=0',
       '--force',
     ];
 
@@ -57,7 +60,7 @@ export class MySQLDriver implements DatabaseDriver {
     const startTime = Date.now();
 
     try {
-      await this.spawnDump(config, outputPath, options);
+      const stderr = await this.spawnDump(config, outputPath, options);
 
       const stats = fs.statSync(outputPath);
       const duration = Date.now() - startTime;
@@ -68,7 +71,7 @@ export class MySQLDriver implements DatabaseDriver {
           filepath: outputPath,
           sizeBytes: 0,
           duration,
-          errorMessage: 'Backup gerou arquivo vazio',
+          errorMessage: stderr ? `Backup gerou arquivo vazio. stderr: ${stderr}` : 'Backup gerou arquivo vazio',
         };
       }
 
@@ -127,6 +130,7 @@ export class MySQLDriver implements DatabaseDriver {
         `--port=${config.port}`,
         `--user=${config.username}`,
         `--password=${config.password}`,
+        '--skip-ssl-verify-server-cert',
         config.database,
       ];
 
@@ -165,7 +169,7 @@ export class MySQLDriver implements DatabaseDriver {
     });
   }
 
-  private async spawnDump(config: ConnectionConfig, outputPath: string, options?: BackupOptions): Promise<void> {
+  private async spawnDump(config: ConnectionConfig, outputPath: string, options?: BackupOptions): Promise<string> {
     if (!options?.rowLimit) {
       return this.execDump(config, outputPath, [config.database], false);
     }
@@ -175,9 +179,10 @@ export class MySQLDriver implements DatabaseDriver {
     const tablesWithoutId = allTables.filter(t => !tablesWithId.has(t));
 
     let firstRun = true;
+    let allStderr = '';
 
     if (tablesWithId.size > 0) {
-      await this.execDump(config, outputPath, [
+      allStderr += await this.execDump(config, outputPath, [
         '--where', `1 ORDER BY id DESC LIMIT ${options.rowLimit}`,
         config.database, ...tablesWithId,
       ], false);
@@ -185,7 +190,7 @@ export class MySQLDriver implements DatabaseDriver {
     }
 
     if (tablesWithoutId.length > 0) {
-      await this.execDump(config, outputPath, [
+      allStderr += await this.execDump(config, outputPath, [
         '--where', `1 LIMIT ${options.rowLimit}`,
         '--skip-routines',
         '--skip-triggers',
@@ -193,6 +198,8 @@ export class MySQLDriver implements DatabaseDriver {
         config.database, ...tablesWithoutId,
       ], !firstRun);
     }
+
+    return allStderr;
   }
 
   private async queryTables(config: ConnectionConfig): Promise<string[]> {
@@ -201,6 +208,7 @@ export class MySQLDriver implements DatabaseDriver {
       `-P${config.port}`,
       `-u${config.username}`,
       `--password=${config.password}`,
+      '--skip-ssl-verify-server-cert',
       '-N', '-e',
       `SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = '${config.database}' AND TABLE_TYPE = 'BASE TABLE'`,
     ], { timeout: 15000 });
@@ -214,6 +222,7 @@ export class MySQLDriver implements DatabaseDriver {
       `-P${config.port}`,
       `-u${config.username}`,
       `--password=${config.password}`,
+      '--skip-ssl-verify-server-cert',
       '-N', '-e',
       `SELECT TABLE_NAME FROM information_schema.COLUMNS WHERE TABLE_SCHEMA = '${config.database}' AND COLUMN_NAME = 'id'`,
     ], { timeout: 15000 });
@@ -227,18 +236,17 @@ export class MySQLDriver implements DatabaseDriver {
       `--port=${config.port}`,
       `--user=${config.username}`,
       `--password=${config.password}`,
+      '--skip-ssl-verify-server-cert',
       '--single-transaction',
       '--routines',
       '--triggers',
       '--events',
-      '--set-gtid-purged=OFF',
       '--no-tablespaces',
-      '--column-statistics=0',
       '--force',
     ];
   }
 
-  private execDump(config: ConnectionConfig, outputPath: string, extraArgs: string[], append: boolean): Promise<void> {
+  private execDump(config: ConnectionConfig, outputPath: string, extraArgs: string[], append: boolean): Promise<string> {
     return new Promise((resolve, reject) => {
       const args = [...this.baseArgs(config), ...extraArgs];
 
@@ -266,7 +274,7 @@ export class MySQLDriver implements DatabaseDriver {
         if (code !== 0 && hasRealError) {
           reject(new Error(stderr.trim()));
         } else {
-          resolve();
+          resolve(stderr.trim());
         }
       });
 

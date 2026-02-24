@@ -2,7 +2,7 @@ import { spawn } from 'node:child_process';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import fs from 'node:fs';
-import type { DatabaseDriver, ConnectionConfig, BackupResult, BackupOptions, RestoreResult } from '../types/index.js';
+import type { DatabaseDriver, ConnectionConfig, BackupResult, BackupOptions, RestoreResult, TestConnectionResult } from '../types/index.js';
 
 const execFileAsync = promisify(execFile);
 
@@ -12,18 +12,22 @@ export class PostgreSQLDriver implements DatabaseDriver {
   readonly defaultPort = 5432;
   readonly fileExtension = '.sql';
 
-  async testConnection(config: ConnectionConfig): Promise<boolean> {
+  async testConnection(config: ConnectionConfig): Promise<TestConnectionResult> {
     try {
       const { stdout } = await execFileAsync('pg_isready', [
         '-h', config.host,
         '-p', String(config.port),
         '-U', config.username,
         '-d', config.database,
-      ], { timeout: 10000 });
+      ], { timeout: 10000, env: { ...process.env, PGPASSWORD: config.password } });
 
-      return stdout.includes('accepting connections');
-    } catch {
-      return false;
+      if (stdout.includes('accepting connections')) {
+        return { reachable: true };
+      }
+      return { reachable: false, error: 'pg_isready did not confirm accepting connections' };
+    } catch (err: any) {
+      const msg = err?.stderr || err?.message || 'Unknown error';
+      return { reachable: false, error: msg };
     }
   }
 

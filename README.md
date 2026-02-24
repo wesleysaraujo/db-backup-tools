@@ -105,6 +105,28 @@ npm run cli -- serve
 
 ## CLI
 
+### Modo interativo (REPL)
+
+Rode sem argumentos para abrir o modo interativo:
+
+```bash
+npm run cli
+```
+
+Isso abre um prompt onde voce pode digitar comandos diretamente:
+
+```
+db-backup> connections list
+db-backup> backup run abc123
+db-backup> schedule list
+db-backup> help
+db-backup> exit
+```
+
+### Modo one-shot
+
+Tambem funciona passando comandos diretamente (retrocompativel):
+
 ```bash
 # Gerenciar conexões
 npm run cli -- connections list

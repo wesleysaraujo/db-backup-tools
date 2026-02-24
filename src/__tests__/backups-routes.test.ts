@@ -36,7 +36,7 @@ const mockDriver: DatabaseDriver = {
   displayName: 'MySQL',
   defaultPort: 3306,
   fileExtension: '.sql',
-  testConnection: jest.fn<(config: ConnectionConfig) => Promise<boolean>>(),
+  testConnection: jest.fn<any>().mockResolvedValue({ reachable: true }),
   backup: mockDriverBackup,
   getBackupCommand: jest.fn<(config: ConnectionConfig, outputPath: string) => string>().mockReturnValue('mysqldump ...'),
   restore: jest.fn<any>().mockResolvedValue({ success: true, duration: 100 }),

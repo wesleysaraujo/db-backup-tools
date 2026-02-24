@@ -55,15 +55,15 @@ function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionCo
 
 function makeMockDriver(overrides: Partial<{
   backupResult: BackupResult;
-  testResult: boolean;
+  testResult: { reachable: boolean; error?: string };
 }> = {}): DatabaseDriver {
   return {
     type: 'mysql',
     displayName: 'MySQL',
     defaultPort: 3306,
     fileExtension: '.sql',
-    testConnection: jest.fn<(config: ConnectionConfig) => Promise<boolean>>()
-      .mockResolvedValue(overrides.testResult ?? true),
+    testConnection: jest.fn<any>()
+      .mockResolvedValue(overrides.testResult ?? { reachable: true }),
     backup: jest.fn<(config: ConnectionConfig, outputPath: string) => Promise<BackupResult>>()
       .mockResolvedValue(overrides.backupResult ?? {
         success: true,
@@ -211,20 +211,20 @@ describe('backup.service', () => {
       await expect(testConnection('non-existent')).rejects.toThrow('Conexao nao encontrada');
     });
 
-    it('should return true when driver reports connection is reachable', async () => {
+    it('should return reachable true when driver reports connection is reachable', async () => {
       mockStore.getConnection.mockReturnValue(makeConnection());
-      mockGetDriver.mockReturnValue(makeMockDriver({ testResult: true }));
+      mockGetDriver.mockReturnValue(makeMockDriver({ testResult: { reachable: true } }));
 
       const result = await testConnection('conn-1');
-      expect(result).toBe(true);
+      expect(result.reachable).toBe(true);
     });
 
-    it('should return false when driver reports connection is not reachable', async () => {
+    it('should return reachable false when driver reports connection is not reachable', async () => {
       mockStore.getConnection.mockReturnValue(makeConnection());
-      mockGetDriver.mockReturnValue(makeMockDriver({ testResult: false }));
+      mockGetDriver.mockReturnValue(makeMockDriver({ testResult: { reachable: false, error: 'connection refused' } }));
 
       const result = await testConnection('conn-1');
-      expect(result).toBe(false);
+      expect(result.reachable).toBe(false);
     });
   });
 });

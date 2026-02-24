@@ -9,6 +9,7 @@
     "build": "tsc",
     "start": "node dist/server.js",
     "cli": "tsx src/cli/index.ts",
+    "cli-prod": "node dist/cli/index.js",
     "typecheck": "tsc --noEmit",
     "test": "node --experimental-vm-modules node_modules/.bin/jest",
     "test:watch": "node --experimental-vm-modules node_modules/.bin/jest --watch"
