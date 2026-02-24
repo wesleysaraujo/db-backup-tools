@@ -4,6 +4,8 @@ Ferramenta CLI + API REST para backup de bancos de dados com arquitetura extens�
 
 Esse projeto usa uma abordagem customizada, leve e performática, uma vez que os comandos de dump são executados de forma nativa diretamente no sistema, sem overhead de bibliotecas ORM ou conexões persistentes.
 
+![Frontend](frontend.png)
+
 ## Quick Start
 
 ### Com Docker (recomendado)
