@@ -22,7 +22,19 @@ jest.unstable_mockModule('../config/index.js', () => ({
     port: 3777,
     backupDir: '/tmp/db-backup-test-backups',
     dataDir: '/tmp/db-backup-test-data',
+    storage: { provider: 'local' }
   },
+}));
+
+const mockStorageProvider = {
+  upload: jest.fn<any>().mockImplementation((tempPath: string, filename: string) => Promise.resolve(`/tmp/${filename}`)),
+  delete: jest.fn<any>().mockResolvedValue(true),
+  getDownloadStream: jest.fn<any>().mockResolvedValue({ pipe: jest.fn() }),
+  downloadToTemp: jest.fn<any>().mockResolvedValue(undefined)
+};
+
+jest.unstable_mockModule('../services/storage.service.js', () => ({
+  getStorageProvider: jest.fn().mockReturnValue(mockStorageProvider),
 }));
 
 // Mock fs to avoid actually creating directories
@@ -37,7 +49,8 @@ jest.unstable_mockModule('node:fs', () => ({
 
 const { runBackup, testConnection } = await import('../services/backup.service.js');
 
-function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionConfig {
+function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionConfig
+{
   return {
     id: 'conn-1',
     name: 'Test DB',
@@ -56,7 +69,8 @@ function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionCo
 function makeMockDriver(overrides: Partial<{
   backupResult: BackupResult;
   testResult: { reachable: boolean; error?: string };
-}> = {}): DatabaseDriver {
+}> = {}): DatabaseDriver
+{
   return {
     type: 'mysql',
     displayName: 'MySQL',
@@ -78,18 +92,23 @@ function makeMockDriver(overrides: Partial<{
   };
 }
 
-describe('backup.service', () => {
-  beforeEach(() => {
+describe('backup.service', () =>
+{
+  beforeEach(() =>
+  {
     jest.clearAllMocks();
   });
 
-  describe('runBackup', () => {
-    it('should throw when connection is not found', async () => {
+  describe('runBackup', () =>
+  {
+    it('should throw when connection is not found', async () =>
+    {
       mockStore.getConnection.mockReturnValue(undefined);
       await expect(runBackup('non-existent')).rejects.toThrow('conexão não encontrada');
     });
 
-    it('should execute backup and return a completed record on success', async () => {
+    it('should execute backup and return a completed record on success', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       const driver = makeMockDriver();
@@ -104,7 +123,8 @@ describe('backup.service', () => {
       expect(mockStore.updateBackup).toHaveBeenCalled();
     });
 
-    it('should mark record as failed when driver backup fails', async () => {
+    it('should mark record as failed when driver backup fails', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       const driver = makeMockDriver({
@@ -124,7 +144,8 @@ describe('backup.service', () => {
       expect(result.errorMessage).toBe('mysqldump failed');
     });
 
-    it('should call getDriver with the connection type', async () => {
+    it('should call getDriver with the connection type', async () =>
+    {
       const conn = makeConnection({ type: 'mysql' });
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -133,7 +154,8 @@ describe('backup.service', () => {
       expect(mockGetDriver).toHaveBeenCalledWith('mysql');
     });
 
-    it('should generate a record with correct metadata', async () => {
+    it('should generate a record with correct metadata', async () =>
+    {
       const conn = makeConnection({ name: 'ProdDB', database: 'production' });
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -147,7 +169,8 @@ describe('backup.service', () => {
       expect(result.startedAt).toBeDefined();
     });
 
-    it('should pass options to driver when rowLimit is provided', async () => {
+    it('should pass options to driver when rowLimit is provided', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       const driver = makeMockDriver();
@@ -162,7 +185,8 @@ describe('backup.service', () => {
       );
     });
 
-    it('should include _partial in filename when rowLimit is set', async () => {
+    it('should include _partial in filename when rowLimit is set', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -172,7 +196,8 @@ describe('backup.service', () => {
       expect(result.filename).toContain('_partial');
     });
 
-    it('should not include _partial in filename for full backup', async () => {
+    it('should not include _partial in filename for full backup', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -182,7 +207,8 @@ describe('backup.service', () => {
       expect(result.filename).not.toContain('_partial');
     });
 
-    it('should set isPartial and rowLimit in record when rowLimit is provided', async () => {
+    it('should set isPartial and rowLimit in record when rowLimit is provided', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -193,7 +219,8 @@ describe('backup.service', () => {
       expect(result.rowLimit).toBe(250);
     });
 
-    it('should set isPartial=false and rowLimit=null for full backup', async () => {
+    it('should set isPartial=false and rowLimit=null for full backup', async () =>
+    {
       const conn = makeConnection();
       mockStore.getConnection.mockReturnValue(conn);
       mockGetDriver.mockReturnValue(makeMockDriver());
@@ -205,13 +232,16 @@ describe('backup.service', () => {
     });
   });
 
-  describe('testConnection', () => {
-    it('should throw when connection is not found', async () => {
+  describe('testConnection', () =>
+  {
+    it('should throw when connection is not found', async () =>
+    {
       mockStore.getConnection.mockReturnValue(undefined);
       await expect(testConnection('non-existent')).rejects.toThrow('conexão não encontrada');
     });
 
-    it('should return reachable true when driver reports connection is reachable', async () => {
+    it('should return reachable true when driver reports connection is reachable', async () =>
+    {
       mockStore.getConnection.mockReturnValue(makeConnection());
       mockGetDriver.mockReturnValue(makeMockDriver({ testResult: { reachable: true } }));
 
@@ -219,7 +249,8 @@ describe('backup.service', () => {
       expect(result.reachable).toBe(true);
     });
 
-    it('should return reachable false when driver reports connection is not reachable', async () => {
+    it('should return reachable false when driver reports connection is not reachable', async () =>
+    {
       mockStore.getConnection.mockReturnValue(makeConnection());
       mockGetDriver.mockReturnValue(makeMockDriver({ testResult: { reachable: false, error: 'connection refused' } }));
 

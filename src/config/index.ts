@@ -11,4 +11,14 @@ export const config = {
     : path.join(process.cwd(), 'data', 'db-backup-tool.db'),
   encryptionKey: process.env['ENCRYPTION_KEY'] || DEFAULT_FALLBACK_KEY,
   apiKey: process.env['API_KEY'] || '',
+  storage: {
+    provider: (process.env['STORAGE_PROVIDER'] || 'local') as 'local' | 's3',
+    s3: {
+      region: process.env['AWS_REGION'] || 'us-east-1',
+      accessKeyId: process.env['AWS_ACCESS_KEY_ID'] || '',
+      secretAccessKey: process.env['AWS_SECRET_ACCESS_KEY'] || '',
+      bucket: process.env['AWS_S3_BUCKET'] || '',
+      endpoint: process.env['AWS_ENDPOINT'] || undefined,
+    },
+  },
 } as const;

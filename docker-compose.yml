@@ -9,10 +9,19 @@ services:
       - ENCRYPTION_KEY=${ENCRYPTION_KEY:-dev-local-key-change-in-production}
       - BACKUP_DIR=/app/backups
       - DATA_DIR=/app/data
+      - STORAGE_PROVIDER=${STORAGE_PROVIDER:-local}
+      - AWS_REGION=${AWS_REGION:-us-east-1}
+      - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID:-minioadmin}
+      - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY:-minioadmin}
+      - AWS_S3_BUCKET=${AWS_S3_BUCKET:-db-backups}
+      - AWS_ENDPOINT=${AWS_ENDPOINT:-http://minio:9000}
     volumes:
       - ./data:/app/data
       - ./backups:/app/backups
     restart: unless-stopped
+    depends_on:
+      minio-setup:
+        condition: service_completed_successfully
 
   frontend:
     build: ./frontend
@@ -21,3 +30,27 @@ services:
     depends_on:
       - app
     restart: unless-stopped
+
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9000:9000"
+      - "9001:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+      /usr/bin/mc mb myminio/db-backups || true &&
+      /usr/bin/mc anonymous set private myminio/db-backups
+      "

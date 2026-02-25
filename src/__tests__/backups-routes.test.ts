@@ -55,11 +55,25 @@ jest.unstable_mockModule('../config/index.js', () => ({
     backupDir: '/tmp/test-backups',
     dataDir: '/tmp/test-data',
     apiKey: 'test-key',
+    storage: { provider: 'local' }
   },
 }));
 
+// Mock StorageProvider
+const mockStorageProvider = {
+  upload: jest.fn<any>().mockResolvedValue('/tmp/backup.sql'),
+  delete: jest.fn<any>().mockResolvedValue(true),
+  getDownloadStream: jest.fn<any>().mockResolvedValue({ pipe: jest.fn() }),
+  downloadToTemp: jest.fn<any>().mockResolvedValue(undefined)
+};
+
+jest.unstable_mockModule('../services/storage.service.js', () => ({
+  getStorageProvider: jest.fn().mockReturnValue(mockStorageProvider),
+}));
+
 // Mock fs for backup dir creation
-jest.unstable_mockModule('node:fs', () => {
+jest.unstable_mockModule('node:fs', () =>
+{
   const actual = jest.requireActual('node:fs') as any;
   return {
     default: {
@@ -83,7 +97,8 @@ jest.unstable_mockModule('../services/scheduler.service.js', () => ({
 const supertest = await import('supertest');
 const { createApp } = await import('../server.js');
 
-function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionConfig {
+function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionConfig
+{
   return {
     id: 'conn-1',
     name: 'TestDB',
@@ -99,7 +114,8 @@ function makeConnection(overrides: Partial<ConnectionConfig> = {}): ConnectionCo
   };
 }
 
-function makeBackupRecord(overrides: Partial<BackupRecord> = {}): BackupRecord {
+function makeBackupRecord(overrides: Partial<BackupRecord> = {}): BackupRecord
+{
   return {
     id: 'backup-1',
     connectionId: 'conn-1',
@@ -120,19 +136,23 @@ function makeBackupRecord(overrides: Partial<BackupRecord> = {}): BackupRecord {
   };
 }
 
-describe('backups routes', () => {
+describe('backups routes', () =>
+{
   let app: ReturnType<typeof createApp>;
 
-  beforeEach(() => {
+  beforeEach(() =>
+  {
     app = createApp();
     jest.clearAllMocks();
   });
 
-  describe('POST /api/backups/:connectionId', () => {
-    it('should execute a backup and return the record', async () => {
+  describe('POST /api/backups/:connectionId', () =>
+  {
+    it('should execute a backup and return the record', async () =>
+    {
       const conn = makeConnection();
       mockGetConnection.mockReturnValue(conn);
-      mockAddBackup.mockImplementation(() => {});
+      mockAddBackup.mockImplementation(() => { });
       mockUpdateBackup.mockImplementation((_id, updates) => makeBackupRecord(updates));
 
       mockDriverBackup.mockResolvedValue({
@@ -150,7 +170,8 @@ describe('backups routes', () => {
       expect(res.body.data.status).toBe('completed');
     });
 
-    it('should return 400 for non-existent connection', async () => {
+    it('should return 400 for non-existent connection', async () =>
+    {
       mockGetConnection.mockReturnValue(undefined);
 
       const res = await supertest.default(app).post('/api/backups/non-existent').set('Authorization', 'Bearer test-key');
@@ -159,10 +180,11 @@ describe('backups routes', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('should accept rowLimit in request body', async () => {
+    it('should accept rowLimit in request body', async () =>
+    {
       const conn = makeConnection();
       mockGetConnection.mockReturnValue(conn);
-      mockAddBackup.mockImplementation(() => {});
+      mockAddBackup.mockImplementation(() => { });
       mockUpdateBackup.mockImplementation((_id, updates) => makeBackupRecord(updates));
 
       mockDriverBackup.mockResolvedValue({
@@ -181,7 +203,8 @@ describe('backups routes', () => {
       expect(res.body.success).toBe(true);
     });
 
-    it('should return 400 for invalid rowLimit', async () => {
+    it('should return 400 for invalid rowLimit', async () =>
+    {
       const res = await supertest.default(app)
         .post('/api/backups/conn-1')
         .set('Authorization', 'Bearer test-key')
@@ -191,7 +214,8 @@ describe('backups routes', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('should return 400 for non-integer rowLimit', async () => {
+    it('should return 400 for non-integer rowLimit', async () =>
+    {
       const res = await supertest.default(app)
         .post('/api/backups/conn-1')
         .set('Authorization', 'Bearer test-key')
@@ -201,10 +225,11 @@ describe('backups routes', () => {
       expect(res.body.success).toBe(false);
     });
 
-    it('should handle failed backup', async () => {
+    it('should handle failed backup', async () =>
+    {
       const conn = makeConnection();
       mockGetConnection.mockReturnValue(conn);
-      mockAddBackup.mockImplementation(() => {});
+      mockAddBackup.mockImplementation(() => { });
       mockUpdateBackup.mockImplementation((_id, updates) => makeBackupRecord(updates));
 
       mockDriverBackup.mockResolvedValue({
@@ -223,8 +248,10 @@ describe('backups routes', () => {
     });
   });
 
-  describe('GET /api/backups', () => {
-    it('should return empty array when no backups exist', async () => {
+  describe('GET /api/backups', () =>
+  {
+    it('should return empty array when no backups exist', async () =>
+    {
       mockGetBackups.mockReturnValue([]);
 
       const res = await supertest.default(app).get('/api/backups').set('Authorization', 'Bearer test-key');
@@ -233,7 +260,8 @@ describe('backups routes', () => {
       expect(res.body.data).toEqual([]);
     });
 
-    it('should return all backups', async () => {
+    it('should return all backups', async () =>
+    {
       mockGetBackups.mockReturnValue([
         makeBackupRecord({ id: 'b1' }),
         makeBackupRecord({ id: 'b2' }),
@@ -245,7 +273,8 @@ describe('backups routes', () => {
       expect(res.body.data).toHaveLength(2);
     });
 
-    it('should pass connectionId filter to store', async () => {
+    it('should pass connectionId filter to store', async () =>
+    {
       mockGetBackups.mockReturnValue([makeBackupRecord()]);
 
       await supertest.default(app).get('/api/backups?connectionId=conn-1').set('Authorization', 'Bearer test-key');
@@ -254,8 +283,10 @@ describe('backups routes', () => {
     });
   });
 
-  describe('GET /api/backups/:id/download', () => {
-    it('should return 404 for non-existent backup', async () => {
+  describe('GET /api/backups/:id/download', () =>
+  {
+    it('should return 404 for non-existent backup', async () =>
+    {
       mockGetBackup.mockReturnValue(undefined);
 
       const res = await supertest.default(app).get('/api/backups/non-existent/download').set('Authorization', 'Bearer test-key');
