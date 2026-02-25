@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { Readable } from 'node:stream';
-import { StorageProvider } from './storage-provider.types.js';
+import type { StorageProvider } from './storage-provider.types.js';
 
 export class LocalStorageProvider implements StorageProvider
 {
@@ -16,11 +16,13 @@ export class LocalStorageProvider implements StorageProvider
     async upload(tempPath: string, filename: string): Promise<string>
     {
         const finalPath = path.join(this.backupDir, filename);
+        console.log(`[LocalStorage] Movendo arquivo temporário para diretório de backups local: ${finalPath}`);
 
         // If temp file is on same disk we could rename, but copy/unlink is safer across partitions
         await fs.promises.copyFile(tempPath, finalPath);
         await fs.promises.unlink(tempPath);
 
+        console.log(`[LocalStorage] Backup local salvo em: ${finalPath}`);
         return finalPath;
     }
 

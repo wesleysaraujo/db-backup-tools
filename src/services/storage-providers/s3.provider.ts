@@ -1,7 +1,7 @@
 import fs from 'node:fs';
 import { Readable } from 'node:stream';
 import { S3Client, PutObjectCommand, DeleteObjectCommand, GetObjectCommand } from '@aws-sdk/client-s3';
-import { StorageProvider } from './storage-provider.types.js';
+import type { StorageProvider } from './storage-provider.types.js';
 
 export interface S3StorageConfig
 {
@@ -9,7 +9,7 @@ export interface S3StorageConfig
     accessKeyId: string;
     secretAccessKey: string;
     bucket: string;
-    endpoint?: string;
+    endpoint?: string | undefined;
 }
 
 export class S3StorageProvider implements StorageProvider
@@ -45,6 +45,7 @@ export class S3StorageProvider implements StorageProvider
 
     async upload(tempPath: string, filename: string): Promise<string>
     {
+        console.log(`[S3Storage] Iniciando upload do arquivo ${filename} para o bucket ${this.bucket}...`);
         const fileStream = fs.createReadStream(tempPath);
 
         const command = new PutObjectCommand({
@@ -54,11 +55,13 @@ export class S3StorageProvider implements StorageProvider
         });
 
         await this.client.send(command);
+        console.log(`[S3Storage] Upload concluído com sucesso: ${filename}`);
 
         // Remove local file
         if (fs.existsSync(tempPath))
         {
             await fs.promises.unlink(tempPath);
+            console.log(`[S3Storage] Arquivo temporário removido: ${tempPath}`);
         }
 
         // Retorna a chave do objeto no S3 como filepath virtual
@@ -67,6 +70,7 @@ export class S3StorageProvider implements StorageProvider
 
     async delete(filepath: string): Promise<boolean>
     {
+        console.log(`[S3Storage] Solicitada exclusão do arquivo: ${filepath}`);
         try
         {
             const command = new DeleteObjectCommand({
@@ -74,9 +78,11 @@ export class S3StorageProvider implements StorageProvider
                 Key: filepath,
             });
             await this.client.send(command);
+            console.log(`[S3Storage] Arquivo excluído com sucesso: ${filepath}`);
             return true;
-        } catch (err)
+        } catch (err: any)
         {
+            console.error(`[S3Storage] Falha ao excluir arquivo ${filepath}:`, err.message);
             return false;
         }
     }

@@ -57,11 +57,13 @@ Abra `http://localhost:5173` e configure o **API Base URL** (ex: `http://localho
 - Criptografia AES-256-GCM para senhas de conexão
 - Migração automática de dados do JSON legado para SQLite
 - Restore de backups para o banco original ou outro destino
+- Sistema de storage conectavel (local ou S3/MinIO) via Strategy Pattern
 - Autenticação via API Key (Bearer token ou X-API-Key) com proteção contra timing attacks
 - Geração segura de API Key e ENCRYPTION_KEY via CLI
 - API RESTful com validação Zod em todas as rotas
 - CI automatizado via GitHub Actions (typecheck + testes + build)
 - CLI standalone (funciona sem o servidor rodando)
+- Logging de todas as requisições HTTP no servidor
 
 ## Bancos suportados
 
@@ -75,10 +77,12 @@ Abra `http://localhost:5173` e configure o **API Base URL** (ex: `http://localho
 
 - **Runtime:** Node.js 22+ com TypeScript
 - **API:** Express.js
-- **Storage:** SQLite via better-sqlite3
+- **Storage de dados:** SQLite via better-sqlite3
+- **Storage de backups:** Local (filesystem) ou S3-compatible (AWS S3, MinIO, DigitalOcean Spaces)
 - **Agendamento:** node-cron
 - **Validação:** Zod
 - **Criptografia:** AES-256-GCM (node:crypto nativo)
+- **S3 SDK:** @aws-sdk/client-s3
 
 ## API Endpoints
 
@@ -187,11 +191,17 @@ npm run cli -- serve --port 4000
 
 | Variável         | Default                        | Descrição                      |
 |------------------|--------------------------------|--------------------------------|
-| `PORT`           | `3777`                         | Porta do servidor API          |
-| `BACKUP_DIR`     | `./backups`                    | Diretório dos arquivos de backup|
-| `DATA_DIR`       | `./data`                       | Diretório do banco SQLite      |
-| `ENCRYPTION_KEY` | fallback inseguro (dev only)   | Chave mestra para criptografia |
-| `API_KEY`        | (vazio = bloqueia tudo)        | Token de autenticação da API   |
+| `PORT`                 | `3777`                       | Porta do servidor API                        |
+| `BACKUP_DIR`           | `./backups`                  | Diretório dos arquivos de backup (modo local)|
+| `DATA_DIR`             | `./data`                     | Diretório do banco SQLite                    |
+| `ENCRYPTION_KEY`       | fallback inseguro (dev only) | Chave mestra para criptografia               |
+| `API_KEY`              | (vazio = bloqueia tudo)      | Token de autenticação da API                 |
+| `STORAGE_PROVIDER`     | `local`                      | Provider de storage: `local` ou `s3`         |
+| `AWS_REGION`           | `us-east-1`                  | Região do bucket S3                          |
+| `AWS_ACCESS_KEY_ID`    | (vazio)                      | Access key do S3/MinIO                       |
+| `AWS_SECRET_ACCESS_KEY`| (vazio)                      | Secret key do S3/MinIO                       |
+| `AWS_S3_BUCKET`        | (vazio)                      | Nome do bucket S3                            |
+| `AWS_ENDPOINT`         | (vazio = AWS padrao)         | Endpoint customizado (MinIO, DO Spaces, etc) |
 
 Copie `.env.example` para `.env` e configure:
 
@@ -208,9 +218,50 @@ npm run cli -- apikey generate
 
 O `ENCRYPTION_KEY` usa um fallback inseguro apenas para desenvolvimento local. Sem `API_KEY` configurada, todas as rotas protegidas retornam 401.
 
-### Armazenamento
+### Armazenamento de backups
 
-- Backups ficam em `./backups/` com naming: `{connection_name}_{database}_{timestamp}.sql`
+O sistema de storage usa o Strategy Pattern com uma interface `StorageProvider` que abstrai onde os arquivos de backup são salvos. Isso permite trocar entre storage local e S3 apenas mudando uma variavel de ambiente.
+
+#### Local (padrao)
+
+Backups ficam em `./backups/` com naming: `{connection_name}_{database}_{timestamp}.sql`
+
+```env
+STORAGE_PROVIDER=local
+```
+
+#### S3 / MinIO
+
+Backups sao enviados para um bucket S3-compatible. O arquivo temporario local e removido apos o upload.
+
+```env
+STORAGE_PROVIDER=s3
+AWS_REGION=us-east-1
+AWS_ACCESS_KEY_ID=sua-access-key
+AWS_SECRET_ACCESS_KEY=sua-secret-key
+AWS_S3_BUCKET=db-backups
+# Para MinIO, DigitalOcean Spaces, etc:
+AWS_ENDPOINT=http://minio:9000
+```
+
+Se a configuração S3 estiver incompleta, o sistema faz fallback automatico para storage local com um aviso no log.
+
+#### Docker Compose com MinIO
+
+O `docker-compose.yml` inclui um setup completo com MinIO como storage S3 local:
+
+- **MinIO** roda nas portas 9020 (API) e 9011 (Console)
+- **minio-setup** cria o bucket `db-backups` automaticamente na inicialização
+- Basta configurar `STORAGE_PROVIDER=s3` no `.env`
+
+```bash
+# Acessar o console MinIO
+http://localhost:9011
+# Login: minioadmin / minioadmin
+```
+
+### Armazenamento de dados
+
 - Banco SQLite em `./data/db-backup-tool.db`
 - Senhas de conexão são criptografadas com AES-256-GCM antes de salvar no banco
 
@@ -244,7 +295,12 @@ src/
 │   └── json-store.ts        # JSON store legado (referência)
 ├── services/
 │   ├── backup.service.ts    # Orquestra backups
-│   └── scheduler.service.ts # Gerencia cron jobs
+│   ├── scheduler.service.ts # Gerencia cron jobs
+│   ├── storage.service.ts   # Factory do storage provider
+│   └── storage-providers/
+│       ├── storage-provider.types.ts # Interface StorageProvider
+│       ├── local.provider.ts         # Storage em filesystem local
+│       └── s3.provider.ts            # Storage em S3/MinIO
 ├── routes/
 │   ├── connections.routes.ts
 │   ├── backups.routes.ts

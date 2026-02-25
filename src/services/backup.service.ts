@@ -32,6 +32,7 @@ export async function runBackup(connectionId: string, options?: BackupOptions): 
 
   // Dump to a temporary file first
   const tempFilepath = path.join(os.tmpdir(), filename);
+  console.log(`[BackupService] Iniciando rotina de backup para a conexão: ${connection.name} (${connectionId})`);
 
   const record: BackupRecord = {
     id: uuidv4(),
@@ -54,6 +55,7 @@ export async function runBackup(connectionId: string, options?: BackupOptions): 
   store.addBackup(record);
 
   // 1. Executa o backup criando o arquivo temporario
+  console.log(`[BackupService] Executando driver de dump do banco para arquivo temporário: ${tempFilepath}`);
   const result = await driver.backup(connection, tempFilepath, options);
 
   let finalFilepath = tempFilepath;
@@ -63,6 +65,7 @@ export async function runBackup(connectionId: string, options?: BackupOptions): 
   // 2. Se o dump funcionou, faz upload para o Storage configurado
   if (result.success)
   {
+    console.log(`[BackupService] Dump finalizado com sucesso. Enviando para Storage Provider...`);
     try
     {
       finalFilepath = await storageProvider.upload(tempFilepath, filename);

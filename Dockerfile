@@ -37,4 +37,4 @@ ENV DATA_DIR=/app/data
 
 EXPOSE 3777
 
-CMD ["node", "dist/server.js"]
+CMD ["node", "--enable-source-maps", "dist/server.js"]

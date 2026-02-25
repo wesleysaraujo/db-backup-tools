@@ -1,4 +1,34 @@
 services:
+  minio:
+    image: minio/minio:latest
+    ports:
+      - "9020:9000"
+      - "9011:9001"
+    environment:
+      - MINIO_ROOT_USER=minioadmin
+      - MINIO_ROOT_PASSWORD=minioadmin
+    command: server /data --console-address ":9001"
+    volumes:
+      - ./data/minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  minio-setup:
+    image: minio/mc:latest
+    depends_on:
+      minio:
+        condition: service_healthy
+    entrypoint: >
+      /bin/sh -c "
+      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin &&
+      /usr/bin/mc mb myminio/db-backups || true &&
+      /usr/bin/mc anonymous set private myminio/db-backups
+      "
+
   app:
     build: .
     ports:
@@ -20,6 +50,8 @@ services:
       - ./backups:/app/backups
     restart: unless-stopped
     depends_on:
+      minio:
+        condition: service_started
       minio-setup:
         condition: service_completed_successfully
 
@@ -30,27 +62,3 @@ services:
     depends_on:
       - app
     restart: unless-stopped
-
-  minio:
-    image: minio/minio:latest
-    ports:
-      - "9000:9000"
-      - "9001:9001"
-    environment:
-      - MINIO_ROOT_USER=minioadmin
-      - MINIO_ROOT_PASSWORD=minioadmin
-    command: server /data --console-address ":9001"
-    volumes:
-      - ./data/minio:/data
-    restart: unless-stopped
-
-  minio-setup:
-    image: minio/mc:latest
-    depends_on:
-      - minio
-    entrypoint: >
-      /bin/sh -c "
-      /usr/bin/mc alias set myminio http://minio:9000 minioadmin minioadmin &&
-      /usr/bin/mc mb myminio/db-backups || true &&
-      /usr/bin/mc anonymous set private myminio/db-backups
-      "
