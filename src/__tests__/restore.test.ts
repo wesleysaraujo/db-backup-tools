@@ -110,8 +110,8 @@ jest.unstable_mockModule('../config/index.js', () => ({
 const mockDownloadToTemp = jest.fn<(filepath: string, tempPath: string) => Promise<void>>().mockResolvedValue(undefined);
 jest.unstable_mockModule('../services/storage.service.js', () => ({
   getStorageProvider: () => ({
-    upload: jest.fn().mockResolvedValue('/tmp/uploaded.sql'),
-    delete: jest.fn().mockResolvedValue(true),
+    upload: jest.fn<() => Promise<string>>().mockResolvedValue('/tmp/uploaded.sql'),
+    delete: jest.fn<() => Promise<boolean>>().mockResolvedValue(true),
     getDownloadStream: jest.fn(),
     downloadToTemp: mockDownloadToTemp,
   }),

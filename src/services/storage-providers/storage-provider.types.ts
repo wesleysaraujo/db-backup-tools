@@ -1,4 +1,3 @@
-import fs from 'node:fs';
 import { Readable } from 'node:stream';
 
 export interface StorageProvider
