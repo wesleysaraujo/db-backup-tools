@@ -94,7 +94,27 @@ jest.unstable_mockModule('../config/index.js', () => ({
     port: 3777,
     backupDir: '/tmp/db-backup-test-backups',
     dataDir: '/tmp/db-backup-test-data',
+    storage: {
+      provider: 'local' as const,
+      s3: {
+        region: 'us-east-1',
+        accessKeyId: '',
+        secretAccessKey: '',
+        bucket: '',
+        endpoint: undefined,
+      },
+    },
   },
+}));
+
+const mockDownloadToTemp = jest.fn<(filepath: string, tempPath: string) => Promise<void>>().mockResolvedValue(undefined);
+jest.unstable_mockModule('../services/storage.service.js', () => ({
+  getStorageProvider: () => ({
+    upload: jest.fn().mockResolvedValue('/tmp/uploaded.sql'),
+    delete: jest.fn().mockResolvedValue(true),
+    getDownloadStream: jest.fn(),
+    downloadToTemp: mockDownloadToTemp,
+  }),
 }));
 
 const originalFs = await import('node:fs');
@@ -177,10 +197,12 @@ describe('runRestore', () => {
     await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Backup não está completo');
   });
 
-  it('should throw when backup file does not exist on disk', async () => {
+  it('should throw when storage download fails', async () => {
     mockStore.getBackup.mockReturnValue(makeBackupRecord());
-    (fs.existsSync as jest.Mock).mockReturnValue(false);
-    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Arquivo de backup não encontrado no disco');
+    mockStore.getConnection.mockReturnValue(makeConnection());
+    mockGetDriver.mockReturnValue(makeMockDriver());
+    mockDownloadToTemp.mockRejectedValueOnce(new Error('Arquivo não encontrado no disco: /tmp/test_backup.sql'));
+    await expect(runRestore('backup-1', 'conn-1')).rejects.toThrow('Arquivo não encontrado no disco');
   });
 
   it('should throw when connection is not found', async () => {
@@ -208,7 +230,8 @@ describe('runRestore', () => {
 
     expect(result.success).toBe(true);
     expect(result.duration).toBe(300);
-    expect(driver.restore).toHaveBeenCalledWith(conn, backup.filepath);
+    expect(driver.restore).toHaveBeenCalledWith(conn, expect.stringContaining(backup.filename));
+    expect(mockDownloadToTemp).toHaveBeenCalledWith(backup.filepath, expect.stringContaining(backup.filename));
   });
 
   it('should use targetConnectionId when provided', async () => {
@@ -223,7 +246,7 @@ describe('runRestore', () => {
     await runRestore('backup-1', 'conn-2');
 
     expect(mockStore.getConnection).toHaveBeenCalledWith('conn-2');
-    expect(driver.restore).toHaveBeenCalledWith(targetConn, backup.filepath);
+    expect(driver.restore).toHaveBeenCalledWith(targetConn, expect.stringContaining(backup.filename));
   });
 
   it('should return failed result when driver restore fails', async () => {
